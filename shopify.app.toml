@@ -3,24 +3,25 @@
 client_id = "b09f9efbe0eb219d51dae1a2b6e7ba34"
 name = "rule-based-shipping"
 handle = "rule-based-shipping-1"
-application_url = "https://pour-individually-alan-correlation.trycloudflare.com"
+application_url = "https://votes-ordering-guides-section.trycloudflare.com"
 embedded = true
 
 [build]
 include_config_on_deploy = true
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,write_shipping"
 
 [auth]
 redirect_urls = [
-  "https://pour-individually-alan-correlation.trycloudflare.com/auth/callback",
-  "https://pour-individually-alan-correlation.trycloudflare.com/auth/shopify/callback",
-  "https://pour-individually-alan-correlation.trycloudflare.com/api/auth/callback"
+  "https://votes-ordering-guides-section.trycloudflare.com/auth/callback",
+  "https://votes-ordering-guides-section.trycloudflare.com/auth/shopify/callback",
+  "https://votes-ordering-guides-section.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
