@@ -1,9 +1,9 @@
 // web/index.js
-
 import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
 import serveStatic from "serve-static";
+import path from "path";
 
 import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
@@ -14,10 +14,11 @@ const PORT = parseInt(
   10
 );
 
+// Determine the static path - crucial for serving frontend files
 const STATIC_PATH =
   process.env.NODE_ENV === "production"
-    ? `${process.cwd()}/frontend/dist`
-    : `${process.cwd()}/frontend/`;
+    ? path.resolve(process.cwd(), "frontend/dist")
+    : path.resolve(process.cwd(), "frontend");
 
 const app = express();
 
@@ -38,7 +39,7 @@ app.post(
   shopify.processWebhooks({ webhookHandlers: PrivacyWebhookHandlers })
 );
 
-// Require authentication for /api routes
+// API routes should be protected with authentication
 app.use("/api/*", shopify.validateAuthenticatedSession());
 app.use(express.json());
 
@@ -48,10 +49,7 @@ let carriers = [
   { name: "Post", price: 1200 }, // €12
 ];
 
-/**
- * Registers or updates a Shopify Carrier Service so we can provide
- * real-time shipping rates at checkout.
- */
+// Carrier Service registration function
 async function registerCarrierService(session) {
   try {
     const carrier = new shopify.api.rest.CarrierService({ session });
@@ -66,11 +64,7 @@ async function registerCarrierService(session) {
   }
 }
 
-/**
- * Carrier Service callback route
- * This receives the shipping rate request from Shopify,
- * calculates rates based on weight, and returns the cheapest option.
- */
+// Carrier Service endpoint that doesn't need auth since it's called by Shopify
 app.post("/carrier-service", express.json(), (req, res) => {
   const request = req.body;
   console.log("Received rate request:", JSON.stringify(request, null, 2));
@@ -116,14 +110,11 @@ app.post("/carrier-service", express.json(), (req, res) => {
   }
 });
 
-// API routes for carrier management
-
-// Get the list of carriers
+// API route handlers
 app.get("/api/carriers", (_req, res) => {
   res.json(carriers);
 });
 
-// Add a new carrier (name and price in cents)
 app.post("/api/carriers", (req, res) => {
   const { name, price } = req.body;
   
@@ -148,7 +139,6 @@ app.post("/api/carriers", (req, res) => {
   res.status(200).json({ success: true, carriers });
 });
 
-// Update an existing carrier
 app.put("/api/carriers/:name", (req, res) => {
   const { name } = req.params;
   const { price } = req.body;
@@ -175,7 +165,6 @@ app.put("/api/carriers/:name", (req, res) => {
   res.status(200).json({ success: true, carriers });
 });
 
-// Delete a carrier
 app.delete("/api/carriers/:name", (req, res) => {
   const { name } = req.params;
   
@@ -192,7 +181,7 @@ app.delete("/api/carriers/:name", (req, res) => {
   res.status(200).json({ success: true, carriers });
 });
 
-// Example endpoint for counting products via GraphQL
+// Other API endpoints
 app.get("/api/products/count", async (_req, res) => {
   const client = new shopify.api.clients.Graphql({
     session: res.locals.shopify.session,
@@ -209,7 +198,6 @@ app.get("/api/products/count", async (_req, res) => {
   res.status(200).send({ count: countData.data.productsCount.count });
 });
 
-// Example endpoint for creating a product
 app.post("/api/products", async (_req, res) => {
   let status = 200;
   let error = null;
@@ -225,22 +213,41 @@ app.post("/api/products", async (_req, res) => {
   res.status(status).send({ success: status === 200, error });
 });
 
-// Set security headers and serve static frontend files
+// Set security headers
 app.use(shopify.cspHeaders());
+
+// Correctly serve static frontend files
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
-// Catch-all route to serve the React app
-app.use("/*", shopify.ensureInstalledOnShop(), (_req, res) => {
-  return res
-    .status(200)
-    .set("Content-Type", "text/html")
-    .send(
-      readFileSync(join(STATIC_PATH, "index.html"))
-        .toString()
-        .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
+// Important: handle all routes for SPA frontend
+app.use("/*", shopify.ensureInstalledOnShop(), (req, res) => {
+  // Log request to help debug issues
+  console.log(`Handling request for: ${req.path}, query:`, req.query);
+  
+  const htmlFile = join(
+    process.env.NODE_ENV === "production" ? STATIC_PATH : STATIC_PATH,
+    "index.html"
+  );
+  
+  try {
+    // Ensure the file exists
+    const indexContent = readFileSync(htmlFile).toString();
+    const updatedContent = indexContent.replace(
+      "%VITE_SHOPIFY_API_KEY%", 
+      process.env.SHOPIFY_API_KEY || ""
     );
+    
+    return res
+      .status(200)
+      .set("Content-Type", "text/html")
+      .send(updatedContent);
+  } catch (error) {
+    console.error(`Error serving index.html: ${error.message}`);
+    res.status(500).send(`Error loading application: ${error.message}`);
+  }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Static files served from: ${STATIC_PATH}`);
 });

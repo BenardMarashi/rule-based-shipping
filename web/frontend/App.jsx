@@ -4,7 +4,7 @@ import { AppNavigation } from "./components/AppNavigation";
 
 // Import your pages
 import HomePage from "./pages/index";
-import Carriers from "./pages/carriers";
+import Carriers from "./pages/Carriers";
 
 export default function App() {
   return (
