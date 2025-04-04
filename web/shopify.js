@@ -1,4 +1,4 @@
-import { BillingInterval, LATEST_API_VERSION } from "@shopify/shopify-api";
+import { BillingInterval, LATEST_API_VERSION, LogSeverity } from "@shopify/shopify-api";
 import { shopifyApp } from "@shopify/shopify-app-express";
 import { SQLiteSessionStorage } from "@shopify/shopify-app-session-storage-sqlite";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-10";
@@ -16,10 +16,21 @@ const billingConfig = {
   },
 };
 
+console.log("Starting Shopify app initialization with the following environment:");
+console.log(`HOST: ${process.env.HOST}`);
+console.log(`SHOPIFY_API_KEY: ${process.env.SHOPIFY_API_KEY ? "Configured" : "Missing"}`);
+console.log(`SHOPIFY_API_SECRET: ${process.env.SHOPIFY_API_SECRET ? "Configured" : "Missing"}`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+
 const shopify = shopifyApp({
   api: {
     apiVersion: LATEST_API_VERSION,
     restResources,
+    logger: {
+      level: LogSeverity.Debug, // Add detailed logging
+      httpRequests: true, // Log HTTP requests
+      timestamps: true,
+    },
     future: {
       customerAddressDefaultFix: true,
       lineItemBilling: true,
@@ -37,5 +48,9 @@ const shopify = shopifyApp({
   // This should be replaced with your preferred storage strategy
   sessionStorage: new SQLiteSessionStorage(DB_PATH),
 });
+
+// Log successful initialization
+console.log("Shopify app initialized successfully");
+console.log("Available REST resources:", Object.keys(shopify.api.rest).join(", "));
 
 export default shopify;
