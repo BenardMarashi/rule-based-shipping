@@ -3,7 +3,7 @@
 client_id = "b09f9efbe0eb219d51dae1a2b6e7ba34"
 name = "rule-based-shipping"
 handle = "rule-based-shipping-1"
-application_url = "https://relate-milan-breeds-cake.trycloudflare.com"
+application_url = "https://laboratory-trio-mini-ja.trycloudflare.com"
 embedded = true
 
 [build]
@@ -19,9 +19,9 @@ scopes = "write_products,write_shipping"
 
 [auth]
 redirect_urls = [
-  "https://relate-milan-breeds-cake.trycloudflare.com/auth/callback",
-  "https://relate-milan-breeds-cake.trycloudflare.com/auth/shopify/callback",
-  "https://relate-milan-breeds-cake.trycloudflare.com/api/auth/callback"
+  "https://laboratory-trio-mini-ja.trycloudflare.com/auth/callback",
+  "https://laboratory-trio-mini-ja.trycloudflare.com/auth/shopify/callback",
+  "https://laboratory-trio-mini-ja.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

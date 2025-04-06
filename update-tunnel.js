@@ -13,7 +13,7 @@ function getTunnelUrl() {
   
   if (!tunnelArg) {
     console.error('No tunnel URL provided. Use --tunnel-url=https://your-tunnel-url.com');
-    process.exit(1);
+    return process.env.HOST || null;
   }
   
   return tunnelArg.split('=')[1];
@@ -21,6 +21,11 @@ function getTunnelUrl() {
 
 // Function to update the .env file with the new tunnel URL
 function updateEnvFile(tunnelUrl) {
+  if (!tunnelUrl) {
+    console.log('No tunnel URL to update');
+    return false;
+  }
+  
   const envPath = path.join(__dirname, '.env');
   
   if (!fs.existsSync(envPath)) {
@@ -47,8 +52,8 @@ function main() {
   const tunnelUrl = getTunnelUrl();
   
   if (!tunnelUrl) {
-    console.error('Invalid tunnel URL');
-    process.exit(1);
+    console.log('Using existing HOST value from .env');
+    return;
   }
   
   console.log(`Updating configuration with tunnel URL: ${tunnelUrl}`);
@@ -58,8 +63,7 @@ function main() {
   if (envUpdated) {
     console.log('Configuration updated successfully!');
   } else {
-    console.error('Failed to update some configuration files');
-    process.exit(1);
+    console.error('Failed to update configuration files');
   }
 }
 

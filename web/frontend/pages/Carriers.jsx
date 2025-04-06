@@ -23,7 +23,7 @@ import {
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import { useAuthenticatedFetch } from "../hooks";
 
-export default function Carriers() {
+export default function carriers() {
   const fetch = useAuthenticatedFetch();
   const [carriers, setCarriers] = useState([]);
   const [newCarrier, setNewCarrier] = useState({ name: "", price: "" });
