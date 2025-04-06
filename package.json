@@ -5,16 +5,28 @@
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
-  "shopify": "shopify",
-  "build": "shopify app build",
-  "dev": "shopify app dev",
-  "dev:tunnel": "node update-tunnel.js && npm run dev",
-  "info": "shopify app info",
-  "generate": "shopify app generate",
-  "deploy": "shopify app deploy"
+    "shopify": "shopify",
+    "build": "shopify app build",
+    "dev": "shopify app dev",
+    "dev:tunnel": "node start-dev.js",
+    "info": "shopify app info",
+    "generate": "shopify app generate",
+    "deploy": "shopify app deploy"
   },
   "dependencies": {
     "@shopify/app": "^3.0.0",
-    "@shopify/cli": "^3.0.0"
+    "@shopify/cli": "^3.0.0",
+    "@shopify/shopify-app-express": "^5.0.8",
+    "@shopify/shopify-app-session-storage-postgresql": "^4.0.17",
+    "compression": "^1.7.4",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "pg": "^8.14.1",
+    "serve-static": "^1.14.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15",
+    "prettier": "^2.6.2",
+    "pretty-quick": "^3.1.3"
   }
 }

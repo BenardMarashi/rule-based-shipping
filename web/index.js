@@ -4,10 +4,21 @@ import { readFileSync } from "fs";
 import express from "express";
 import serveStatic from "serve-static";
 import path from "path";
+import dotenv from 'dotenv';
 
 import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
+import { initializeDB, getCarriers, addCarrier, updateCarrier, deleteCarrier } from './database.js';
+
+// Load environment variables
+dotenv.config();
+
+// Initialize the database when the app starts
+initializeDB().catch(error => {
+  console.error("Failed to initialize database:", error);
+  process.exit(1);
+});
 
 const PORT = parseInt(
   process.env.BACKEND_PORT || process.env.PORT || "3000",
@@ -43,12 +54,6 @@ app.post(
 app.use("/api/*", shopify.validateAuthenticatedSession());
 app.use(express.json());
 
-// In-memory carriers array (replace with DB if needed)
-let carriers = [
-  { name: "DPD", price: 1000 }, // €10
-  { name: "Post", price: 1200 }, // €12
-];
-
 // Carrier Service registration function
 async function registerCarrierService(session) {
   try {
@@ -65,11 +70,19 @@ async function registerCarrierService(session) {
 }
 
 // Carrier Service endpoint that doesn't need auth since it's called by Shopify
-app.post("/carrier-service", express.json(), (req, res) => {
+app.post("/carrier-service", express.json(), async (req, res) => {
   const request = req.body;
   console.log("Received rate request:", JSON.stringify(request, null, 2));
 
   try {
+    // Get carriers from database
+    const carriers = await getCarriers();
+    
+    if (carriers.length === 0) {
+      console.log("No carriers configured");
+      return res.status(200).json({ rates: [] });
+    }
+
     // Sum up total weight (in grams)
     const totalWeightGrams = request.rate.items.reduce(
       (acc, item) => acc + item.grams * item.quantity,
@@ -110,12 +123,21 @@ app.post("/carrier-service", express.json(), (req, res) => {
   }
 });
 
-// API route handlers
-app.get("/api/carriers", (_req, res) => {
-  res.json(carriers);
+// API route handlers for carriers
+app.get("/api/carriers", async (_req, res) => {
+  try {
+    const carriers = await getCarriers();
+    res.json(carriers);
+  } catch (error) {
+    console.error("Error fetching carriers:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to fetch carriers" 
+    });
+  }
 });
 
-app.post("/api/carriers", (req, res) => {
+app.post("/api/carriers", async (req, res) => {
   const { name, price } = req.body;
   
   // Validate input
@@ -126,20 +148,28 @@ app.post("/api/carriers", (req, res) => {
     });
   }
   
-  // Check for duplicate names
-  if (carriers.some(carrier => carrier.name.toLowerCase() === name.toLowerCase())) {
-    return res.status(400).json({ 
+  try {
+    await addCarrier(name, parseInt(price, 10));
+    const carriers = await getCarriers();
+    res.status(200).json({ success: true, carriers });
+  } catch (error) {
+    // Check for duplicate name constraint violation
+    if (error.message.includes('unique') || error.message.includes('duplicate')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "A carrier with this name already exists" 
+      });
+    }
+    
+    console.error("Error adding carrier:", error);
+    res.status(500).json({ 
       success: false, 
-      error: "A carrier with this name already exists" 
+      error: "Failed to add carrier" 
     });
   }
-  
-  // Add the new carrier
-  carriers.push({ name, price: parseInt(price, 10) });
-  res.status(200).json({ success: true, carriers });
 });
 
-app.put("/api/carriers/:name", (req, res) => {
+app.put("/api/carriers/:name", async (req, res) => {
   const { name } = req.params;
   const { price } = req.body;
   
@@ -151,34 +181,49 @@ app.put("/api/carriers/:name", (req, res) => {
     });
   }
   
-  // Find and update the carrier
-  const carrierIndex = carriers.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
-  
-  if (carrierIndex === -1) {
-    return res.status(404).json({ 
+  try {
+    const result = await updateCarrier(name, parseInt(price, 10));
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Carrier not found" 
+      });
+    }
+    
+    const carriers = await getCarriers();
+    res.status(200).json({ success: true, carriers });
+  } catch (error) {
+    console.error("Error updating carrier:", error);
+    res.status(500).json({ 
       success: false, 
-      error: "Carrier not found" 
+      error: "Failed to update carrier" 
     });
   }
-  
-  carriers[carrierIndex].price = parseInt(price, 10);
-  res.status(200).json({ success: true, carriers });
 });
 
-app.delete("/api/carriers/:name", (req, res) => {
+app.delete("/api/carriers/:name", async (req, res) => {
   const { name } = req.params;
   
-  const initialLength = carriers.length;
-  carriers = carriers.filter(c => c.name.toLowerCase() !== name.toLowerCase());
-  
-  if (carriers.length === initialLength) {
-    return res.status(404).json({ 
+  try {
+    const result = await deleteCarrier(name);
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Carrier not found" 
+      });
+    }
+    
+    const carriers = await getCarriers();
+    res.status(200).json({ success: true, carriers });
+  } catch (error) {
+    console.error("Error deleting carrier:", error);
+    res.status(500).json({ 
       success: false, 
-      error: "Carrier not found" 
+      error: "Failed to delete carrier" 
     });
   }
-  
-  res.status(200).json({ success: true, carriers });
 });
 
 // Other API endpoints

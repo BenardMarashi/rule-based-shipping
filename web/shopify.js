@@ -1,34 +1,37 @@
+// web/shopify.js
 import { BillingInterval, LATEST_API_VERSION, LogSeverity } from "@shopify/shopify-api";
 import { shopifyApp } from "@shopify/shopify-app-express";
-import { SQLiteSessionStorage } from "@shopify/shopify-app-session-storage-sqlite";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-10";
+import { PostgreSQLSessionStorage } from "@shopify/shopify-app-session-storage-postgresql";
+import dotenv from 'dotenv';
 
-const DB_PATH = `${process.cwd()}/database.sqlite`;
+// Load environment variables
+dotenv.config();
 
-// The transactions with Shopify will always be marked as test transactions, unless NODE_ENV is production.
-// See the ensureBilling helper to learn more about billing in this template.
-const billingConfig = {
-  "My Shopify One-Time Charge": {
-    // This is an example configuration that would do a one-time charge for $5 (only USD is currently supported)
-    amount: 5.0,
-    currencyCode: "USD",
-    interval: BillingInterval.OneTime,
-  },
-};
+// PostgreSQL session storage configuration
+const sessionStorage = new PostgreSQLSessionStorage({
+  host: process.env.PG_HOST || 'localhost',
+  port: Number(process.env.PG_PORT) || 5432,
+  database: process.env.PG_DATABASE || 'shipping_app',
+  username: process.env.PG_USER || 'postgres',
+  password: process.env.PG_PASSWORD || 'postgres',
+  ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false
+});
 
 console.log("Starting Shopify app initialization with the following environment:");
 console.log(`HOST: ${process.env.HOST}`);
 console.log(`SHOPIFY_API_KEY: ${process.env.SHOPIFY_API_KEY ? "Configured" : "Missing"}`);
 console.log(`SHOPIFY_API_SECRET: ${process.env.SHOPIFY_API_SECRET ? "Configured" : "Missing"}`);
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`Database: PostgreSQL on ${process.env.PG_HOST || 'localhost'}`);
 
 const shopify = shopifyApp({
   api: {
     apiVersion: LATEST_API_VERSION,
     restResources,
     logger: {
-      level: LogSeverity.Debug, // Add detailed logging
-      httpRequests: true, // Log HTTP requests
+      level: LogSeverity.Debug,
+      httpRequests: true,
       timestamps: true,
     },
     future: {
@@ -45,8 +48,7 @@ const shopify = shopifyApp({
   webhooks: {
     path: "/api/webhooks",
   },
-  // This should be replaced with your preferred storage strategy
-  sessionStorage: new SQLiteSessionStorage(DB_PATH),
+  sessionStorage: sessionStorage,
 });
 
 // Log successful initialization
