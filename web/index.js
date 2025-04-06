@@ -228,19 +228,27 @@ app.delete("/api/carriers/:name", async (req, res) => {
 
 // Other API endpoints
 app.get("/api/products/count", async (_req, res) => {
-  const client = new shopify.api.clients.Graphql({
-    session: res.locals.shopify.session,
-  });
+  try {
+    const client = new shopify.api.clients.Graphql({
+      session: res.locals.shopify.session,
+    });
 
-  const countData = await client.request(`
-    query shopifyProductCount {
-      productsCount {
-        count
+    const countData = await client.request(`
+      query shopifyProductCount {
+        productsCount {
+          count
+        }
       }
-    }
-  `);
+    `);
 
-  res.status(200).send({ count: countData.data.productsCount.count });
+    res.status(200).send({ count: countData.data.productsCount.count });
+  } catch (error) {
+    console.error("Error fetching product count:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to fetch product count" 
+    });
+  }
 });
 
 app.post("/api/products", async (_req, res) => {
@@ -290,6 +298,17 @@ app.use("/*", shopify.ensureInstalledOnShop(), (req, res) => {
     console.error(`Error serving index.html: ${error.message}`);
     res.status(500).send(`Error loading application: ${error.message}`);
   }
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred' 
+      : err.message
+  });
 });
 
 app.listen(PORT, () => {

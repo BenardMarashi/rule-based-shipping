@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isWindows = process.platform === 'win32';
 
 async function main() {
   console.log('Starting Cloudflare tunnel...');
@@ -39,10 +40,16 @@ async function main() {
       // Update the .env file
       updateEnvFile(tunnelUrl);
       
-      // Start the development server
+      // Start the development server using a direct approach
       console.log('Starting development server...');
-      const shopify = spawn('npm', ['run', 'dev'], { 
+      
+      // Use npm.cmd on Windows, npm otherwise
+      const npmCmd = isWindows ? 'npm.cmd' : 'npm';
+      
+      // Run shopify dev without any special flags - use the simplest approach
+      const shopify = spawn(npmCmd, ['run', 'dev'], { 
         stdio: 'inherit',
+        shell: true,
         env: { 
           ...process.env,
           HOST: tunnelUrl,
@@ -62,6 +69,13 @@ async function main() {
         // Kill the cloudflared process when the dev server exits
         cloudflared.kill();
         process.exit(code);
+      });
+      
+      // Handle errors
+      shopify.on('error', (err) => {
+        console.error('Failed to start development server:', err);
+        cloudflared.kill();
+        process.exit(1);
       });
     }
   }

@@ -3,7 +3,7 @@
 client_id = "b09f9efbe0eb219d51dae1a2b6e7ba34"
 name = "rule-based-shipping"
 handle = "rule-based-shipping-1"
-application_url = "https://broadway-wrap-driven-poet.trycloudflare.com"
+application_url = "https://serve-watches-from-basis.trycloudflare.com"
 embedded = true
 
 [build]
@@ -19,10 +19,10 @@ scopes = "write_products,write_shipping"
 
 [auth]
 redirect_urls = [
-  "https://broadway-wrap-driven-poet.trycloudflare.com/auth/callback",
-  "https://broadway-wrap-driven-poet.trycloudflare.com/auth/shopify/callback",
-  "https://broadway-wrap-driven-poet.trycloudflare.com/api/auth/callback"
+  "https://serve-watches-from-basis.trycloudflare.com/auth/callback",
+  "https://serve-watches-from-basis.trycloudflare.com/auth/shopify/callback",
+  "https://serve-watches-from-basis.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
-embedded = false
+embedded = true
